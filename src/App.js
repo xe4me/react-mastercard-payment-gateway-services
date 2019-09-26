@@ -3,6 +3,7 @@ import { Box, Button, Input, Flex, LoadingIndicator } from 'roo-ui/components';
 import styled from '@emotion/styled';
 
 const MASTER_CARD_SESSION_JS_SRC = `https://test-gateway.mastercard.com/form/version/52/merchant/${process.env.REACT_APP_MERCHANT_ID}/session.js`;
+const MPGS_TIMEOUT = 5000;
 
 const onScriptLoad = ({
   initialized,
@@ -53,7 +54,11 @@ const loadScript = async (formSessionUpdate) => {
     return Promise.reject();
   }
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject();
+    }, MPGS_TIMEOUT);
+
     const prevScript = document.querySelector(`script[src="${MASTER_CARD_SESSION_JS_SRC}"]`);
 
     if (prevScript) {
@@ -63,6 +68,7 @@ const loadScript = async (formSessionUpdate) => {
     const script = document.createElement('script');
     script.src = MASTER_CARD_SESSION_JS_SRC;
     script.async = 1;
+    script.onerror = reject;
     script.onload = () => onScriptLoad({
       initialized: resolve,
       formSessionUpdate,
@@ -124,7 +130,9 @@ const Payment = ({
   }, [onFormSessionUpdated])
 
   useEffect(() => {
-    loadScript(handleFormSessionUpdate).then(() => setInitializing(false));
+    loadScript(handleFormSessionUpdate)
+      .then(() => setInitializing(false))
+      .catch(() => console.error('CANT NOT LOAD MPGS'));
   }, [handleFormSessionUpdate]);
 
   return (
